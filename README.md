@@ -11,7 +11,7 @@ This is a repo for the designing of a weird metaprogramming "language" that allo
 `kwarg` is either a symbol or a key-value pair separated by `=>`, if it a lone key, it is assumed to mean `key => true` or `!key => false`
 
 `#` is a comment and has a corresponding multiline: `#=... =#`  
-`$` is a value escape and has a corresponding expression escape: `$=... =$` 
+`$` is a value escape and has a corresponding expression escape: `$=... =$`  
 `!` is a math variable and has a corresponding math expression escape: `!=... =!` 
 
 ## Blocks
