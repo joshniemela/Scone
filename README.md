@@ -4,9 +4,6 @@ This is a repo for the designing of a weird metaprogramming "language" that allo
 # Grammar (WIP)
 `@fun_name args...; kwargs...` declares a macro call  
 `@fun_name args...; kwargs... block` declares a macro call with a block  
-## Alternative lispy syntax
-`@fun_name args... :key value :key value...` declares a macro call  
-`@fun_name args... :key value :key value... block` declares a macro call with a block  
 
 `kwarg` is either a symbol or a key-value pair separated by `=>`, if it a lone key, it is assumed to mean `key => true` or `!key => false`
 
@@ -22,3 +19,7 @@ blocks behave as a list of elements separated by newline(?)
 ### TODO:
 figure out types, strings etc, how to deal with long arguments or some that contain commas.  
 #### Possible string syntax: `"..."
+
+## Alternative lispy syntax
+`@fun_name args... :key value :key value...` declares a macro call  
+`@fun_name args... :key value :key value... block` declares a macro call with a block  
