@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 import Data.Void
-import Data.Text (Text, dropWhileEnd)
+import Data.Text (Text)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Data.Text as T
@@ -57,13 +57,12 @@ parseCode :: Parser SExpr
 parseCode = char ':' >> parseSExpr
 
 reservedChars :: [Char]
-reservedChars = [':', ']', '[', '#', '(', ')', '\'']
+reservedChars = [':', ']', '[', '#', '(', ')', '\'', '"']
 
 escapeChars :: Parser Char
 escapeChars = do
-    char '\\'
-    c <- oneOf reservedChars
-    return c
+    _ <- char '\\'
+    oneOf reservedChars
 
 -- TODO: leaves newline and whitespaces at the end
 parseMarkup :: Parser SExpr
@@ -75,7 +74,7 @@ parseMarkup = do
 -- Parsers in code mode
 parseMarkupBlock :: Parser SExpr
 parseMarkupBlock = do
-    char '['
+    _ <- char '['
     contents <- manyTill (parseCode <|> parseMarkup) (char ']')
     return $ List contents
 
