@@ -1,0 +1,7 @@
+something bla bla :i is defined as the sum of \: where im able to escape
+
+:(defun fac (n)
+  (if (= n 0)
+    [ This does wack stuff ]
+    1
+    (* n (fac (- n 1)))))
