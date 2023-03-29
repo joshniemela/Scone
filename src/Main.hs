@@ -19,7 +19,7 @@ data SExpr = List [SExpr]
 
 type Parser = Parsec Void Text
 
-parens = between (char '(') (char ')')
+parens = between (char '(' <* space) (space <* char ')')
 
 -- These are the characters that are allowed at the start of an atom
 allowedFirstChars :: [Char]
