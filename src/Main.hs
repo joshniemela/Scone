@@ -40,7 +40,7 @@ parseAtom = do
     return $ Atom $ T.pack $ first : rest
 
 parseList :: Parser SExpr
-parseList = List <$> parens (parseSExpr `sepBy` space1)
+parseList = List <$> parens (parseSExpr `sepEndBy` space)
 
 parseSExpr :: Parser SExpr
 parseSExpr = do
