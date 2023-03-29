@@ -67,8 +67,10 @@ escapeChars = do
 -- TODO: leaves newline and whitespaces at the end
 parseMarkup :: Parser SExpr
 parseMarkup = do
+    space
     contents <- manyTill (escapeChars <|> L.charLiteral) (lookAhead (oneOf reservedChars <|> (eof >> return ' ') ))
-    return $ Markup $ T.pack contents
+    -- Strip last spaces and newlines
+    return $ Markup $ T.pack $ reverse $ dropWhile (\x -> x == ' ' || x == '\n') $ reverse contents
 
 
 -- Parsers in code mode
@@ -80,9 +82,11 @@ parseMarkupBlock = do
 
 parseContent :: Parser SExpr
 parseContent = do
-    space
     exprs <- manyTill (parseCode <|> parseMarkup) eof
-    return $ List exprs
+    -- remove empty markup
+    return $ List $ filter (\x -> case x of
+        Markup "" -> False
+        _ -> True) exprs
 
 
 -- Test random string
