@@ -88,7 +88,7 @@ parseContent = do
 -- Test random string
 main :: IO ()
 main = do
-    content <- readFile "test.txt"
-    case parse parseContent "test.txt" (T.pack content) of
+    content <- readFile "test.phl"
+    case parse parseContent "test.phl" (T.pack content) of
         Left err -> putStrLn $ errorBundlePretty err
         Right expr -> print expr

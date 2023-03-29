@@ -72,8 +72,6 @@ executable JexLexer
                      ,text
                      ,array
                      ,megaparsec
-                     ,parser-combinators
-                     ,pretty
 
     -- Directories containing source files.
     hs-source-dirs:   src

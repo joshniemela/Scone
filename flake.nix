@@ -21,14 +21,7 @@
 						cabalStuff
 					];
 					buildInputs = with haskellPackages; [
-						haskell-language-server
-						hlint
-						ghcid
-            #fourmolu
 						cabal-install
-            alex
-            happy
-
 					];
 				};
 				
