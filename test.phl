@@ -1,6 +1,6 @@
-:(2 1
-3 4 [   what :i ])
+Example of an expression to calculate
+:(/ (+
+  2 3 4 (* 2 7 1)) 2)
 
-
-5
-
+Testing nested expressions
+:(+ 2 23 2)

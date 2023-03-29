@@ -72,6 +72,7 @@ executable JexLexer
                      ,text
                      ,array
                      ,megaparsec
+                     ,mtl
 
     -- Directories containing source files.
     hs-source-dirs:   src
