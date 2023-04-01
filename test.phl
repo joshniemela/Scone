@@ -1,6 +1,2 @@
-Example of an expression to calculate
-:(/ (+
-  2 3 4 (* 2 7 1)) 2)
-
-Testing nested expressions
-:(+ 2 23 2)
+(/ (+
+  2 2()3 4 (* 2 7 1)) 24) 2
