@@ -5,7 +5,7 @@ module Val (
     Scheme(..),
     Eval(..),
     Fn(..),
-    Env,
+    Env(..),
     SchemeException(..),
     showScheme,
 ) where
@@ -48,7 +48,7 @@ data SchemeException
     = NumArgs Integer [Scheme]
     | TypeMismatch T.Text Scheme
     | BadSpecialForm T.Text
-    | ExpectedList Scheme
+    | ExpectedList T.Text
     | NotFunction Scheme
     | UnboundVar T.Text
     | Default Scheme
@@ -83,7 +83,7 @@ showExcept err =
 newtype Fn = Fn { fn :: [Scheme] -> Eval Scheme }
 
 type ValLookup = M.Map T.Text Scheme
-type FnLookup = M.Map T.Text Fn
+type FnLookup = M.Map T.Text Scheme
 
 data Env = Env
     { envVal :: ValLookup
