@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 import Data.Void
 import Data.Text (Text)
 import Text.Megaparsec
@@ -8,16 +7,24 @@ import qualified Data.Text as T
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Monad.Except
 
+
+
+
 -- Define all types for the language
-data SExpr = List [SExpr]
-          | Content [SExpr]
-           | Atom Text
-           | Number Int
+data SExpr = Atom Text
+           | List [SExpr]
+           | Nil
            | String Text
-           | Bool Bool
            | Markup Text
-           | Comment Text
-           deriving (Show, Eq)
+           | Number Integer
+           | Bool Bool
+           | Function Fn
+
+-- Define every possible type in the AST for the formatter, this includes extra types for the formatter such as Comment
+data AST = Comment Text
+         | SExpr SExpr
+         | Newline
+         deriving (Show, Eq)
 
 type Parser = Parsec Void Text
 
