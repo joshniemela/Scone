@@ -1,18 +1,17 @@
-import Parser
-import Val
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+import Parser (readExpr, readExprFile)
+import LispVal (LispVal(..))
 import Data.Text as T
-import Data.Text (Text)
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Data.Text as T
 import qualified Text.Megaparsec.Char.Lexer as L
-import Control.Monad.Except
 
--- Read file and parse it
+
+-- Read a file and print the result
 main :: IO ()
 main = do
     contents <- readFile "test.phl"
-    let parsed = readExprFile $ T.pack contents
-    case parsed of
+    case readExprFile (T.pack contents) of
         Left err -> putStrLn $ errorBundlePretty err
         Right val -> print val

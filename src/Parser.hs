@@ -5,62 +5,70 @@ module Parser (
     readExprFile
 ) where
 
-import Val (Scheme(..), SchemeException(..))
-import Data.Void
-import Data.Text (Text)
+import LispVal
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Data.Text as T
 import qualified Text.Megaparsec.Char.Lexer as L
-import Control.Monad.Except
+import qualified Data.Text as T
+import Data.Void
 
-type Parser = Parsec Void Text
-
-parens = between (char '(' <* space) (space <* char ')')
+type Parser = Parsec Void T.Text
 
 reservedChars :: [Char]
-reservedChars = [':', ']', '[', '#', '(', ')', '\'', '"']
+reservedChars = "()[]\"\';:#"
 
 escapeChars :: Parser Char
 escapeChars = do
     _ <- char '\\'
     oneOf reservedChars
 
--- These are the characters that are allowed at the start of an atom
-allowedFirstChars :: [Char]
-allowedFirstChars = ['a'..'z'] ++ ['A'..'Z'] ++ "+-*/$%&<=>?^_~"
+parseNumber :: Parser LispVal
+parseNumber = do
+    sign <- optional $ char '-'
+    num <- L.decimal
+    return $ Integer $ case sign of
+        Just _ -> negate num
+        Nothing -> num
 
-allowedFirst :: Parser Char
-allowedFirst = oneOf allowedFirstChars
+firstAllowed :: Parser Char
+firstAllowed = letterChar <|> oneOf others
+    where others = "!$%&|*+-/:<=>?@^_~" :: [Char]
 
-
--- Basic types
-parseNumber :: Parser Scheme
-parseNumber = Number <$> L.decimal
-
-parseAtom :: Parser Scheme
+parseAtom :: Parser LispVal
 parseAtom = do
-    first <- allowedFirst
-    rest <- many $ oneOf $ allowedFirstChars ++ ['0'..'9']
-    return $ Atom $ T.pack $ first : rest
+    first <- firstAllowed
+    rest <- many $ firstAllowed <|> digitChar
+    let atom = first:rest
+    return $ case atom of
+        "true" -> Bool True
+        "false" -> Bool False
+        "nil" -> Nil
+        _ -> Atom $ T.pack atom
 
-parseMany :: Parser [Scheme]
+parseMany :: Parser [LispVal]
 parseMany = parseSExpr `sepEndBy` space1
 
-parseList :: Parser Scheme
+parens = between (char '(' <* space) (space <* char ')')
+
+parseList :: Parser LispVal
 parseList = List <$> parens parseMany
 
-parseQuoted :: Parser Scheme
+parseString :: Parser LispVal
+parseString = do
+    _ <- char '"'
+    str <- many $ escapeChars <|> noneOf reservedChars
+    _ <- char '"'
+    return $ String $ T.pack str
+
+parseQuoted :: Parser LispVal
 parseQuoted = do
     _ <- char '\''
     expr <- parseSExpr
     return $ List [Atom "quote", expr]
 
-parseSExpr :: Parser Scheme
-parseSExpr = do
-    expr <- choice [parseNumber, parseAtom, parseList, parseQuoted]
-    lookAhead $ choice [eof, space]
-    return expr
+
+parseSExpr :: Parser LispVal
+parseSExpr = choice [ parseQuoted, parseList, parseAtom, parseNumber, parseString ]
 
 contents :: Parser a -> Parser a
 contents p = do
@@ -69,40 +77,10 @@ contents p = do
     eof
     return r
 
-readExpr :: Text -> Either (ParseErrorBundle Text Void) Scheme
+
+
+readExpr :: T.Text -> Either (ParseErrorBundle T.Text Void) LispVal
 readExpr = parse (contents parseSExpr) "<stdin>"
 
-readExprFile :: Text -> Either (ParseErrorBundle Text Void) Scheme
-readExprFile = parse (contents $ List <$> parseMany) "file"
-{-
--- Parsers in markup mode
-parseCode :: Parser SExpr
-parseCode = char ':' >> parseSExpr
--}
-
-{-
--- TODO: leaves newline and whitespaces at the end
-parseMarkup :: Parser SExpr
-parseMarkup = do
-    space
-    contents <- manyTill (escapeChars <|> L.charLiteral) (lookAhead (oneOf reservedChars <|> (eof >> return ' ') ))
-    -- Strip last spaces and newlines
-    return $ Markup $ T.pack $ reverse $ dropWhile (\x -> x == ' ' || x == '\n') $ reverse contents
--}
-
-{-
--- Parsers in code mode
-parseMarkupBlock :: Parser SExpr
-parseMarkupBlock = do
-    _ <- char '['
-    contents <- manyTill (parseCode <|> parseMarkup) (char ']')
-    return $ Content contents
-
-parseContent :: Parser SExpr
-parseContent = do
-    exprs <- manyTill (parseCode <|> parseMarkup) eof
-    -- remove empty markup
-    return $ Content $ filter (\x -> case x of
-        Markup "" -> False
-        _ -> True) exprs
--}
+readExprFile :: T.Text -> Either (ParseErrorBundle T.Text Void) LispVal
+readExprFile = parse (contents $ List <$> parseMany) "<file>"
