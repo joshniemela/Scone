@@ -2,7 +2,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 import Parser (readExpr, readExprFile)
 import LispVal (LispVal(..))
-import Eval (eval)
 import Data.Text as T
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -13,6 +12,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 main :: IO ()
 main = do
     contents <- readFile "test.phl"
-    case readExprFile $ T.pack contents of
+    case readExprFile (T.pack contents) of
         Left err -> print err
-        Right val -> putStrLn $ show $ eval val
+        Right val -> print val
