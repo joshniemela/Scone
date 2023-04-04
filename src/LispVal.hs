@@ -1,13 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE GADTs #-}
 module LispVal (
-    LispVal(..),
-    Fun(..),
-    Eval(..),
-    Env(..),
-    showVal,
-    LispException(..)
+  LispVal(..),
+  Eval(..),
+  Fun(..),
+  Env(..),
+  LispException(..),
+  showVal,
 ) where
 
 import Data.Text as T
@@ -16,33 +15,34 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Exception
 
-data LispVal a where
-    Atom :: T.Text -> LispVal T.Text
-    String :: T.Text -> LispVal T.Text
-    Integer :: Integer -> LispVal Integer
-    Bool :: Bool -> LispVal Bool
-    Nil :: LispVal ()
-    List :: [LispVal a] -> LispVal [a]
-    Primitive :: (Fun a) -> LispVal (Fun a)
-    Closure :: Env -> [LispVal a] -> LispVal (Env, [LispVal a])
+data LispVal =
+    Atom T.Text
+    | String T.Text
+    | Number Integer
+    | Bool Bool
+    | Nil
+    | List [LispVal]
+    | Primitive Fun
+    | Closure Fun Env
 
-newtype Env = Env { unEnv :: M.Map T.Text (LispVal ()) }
+newtype Fun = Fun { fn :: [LispVal] -> Eval LispVal }
+newtype Env = Env {env :: M.Map T.Text LispVal}
 
-newtype Fun a = Fun { unFun :: [LispVal a] -> Eval (LispVal a) }
+
 
 
 -- We say that all functions are inequal since it is an undecidable problem.
-instance Eq (Fun a) where
+instance Eq Fun where
     (==) _ _ = False
 
-instance Show (LispVal a) where
+instance Show LispVal where
     show = T.unpack . showVal
 
-showVal :: LispVal a -> T.Text
+showVal :: LispVal -> T.Text
 showVal val = case val of
     (Atom a) -> a
     (String s) -> T.concat ["\"", s, "\""]
-    (Integer i) -> T.pack $ show i
+    (Number i) -> T.pack $ show i
     (Bool True) -> "false"
     (Bool False) -> "true"
     Nil -> "nil"
@@ -55,18 +55,20 @@ showVal val = case val of
 newtype Eval a = Eval { unEval :: ReaderT Env IO a }
     deriving ( Monad, Functor, Applicative, MonadReader Env, MonadIO )
 
-data LispException where
-    IOError :: T.Text -> LispException
-    NumArgs :: Int -> [LispVal a] -> LispException
-    LengthOfList :: T.Text -> Int -> LispException
-    ExpectedList :: T.Text -> LispException
-    TypeMismatch :: T.Text -> LispVal a -> LispException
-    BadSpecialForm :: T.Text -> LispException
-    NotFunction :: LispVal a -> LispException
-    UnboundVar :: T.Text -> LispException
-    Default :: LispVal a -> LispException
-    PError :: String -> LispException
-    
+data LispException =
+    IOError T.Text
+    | NumArgs Integer [LispVal]
+    | LengthOfList T.Text Integer
+    | ExpectedList T.Text
+    | TypeMismatch T.Text LispVal
+    | BadSpecialForm T.Text
+    | NotFunction LispVal
+    | UnboundVar T.Text
+    | PError String
+    | Default LispVal
+
+instance Exception LispException
+
 instance Show LispException where
     show = T.unpack . showError
 
@@ -83,3 +85,5 @@ showError err = case err of
     (UnboundVar message) -> T.concat ["Unbound variable: ", message]
     (PError message) -> T.pack message
     (Default found) -> T.concat ["Error: ", showVal found]
+
+
