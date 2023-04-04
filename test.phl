@@ -1,9 +1,10 @@
-(define factorial (lambda (n) 
-  (if 
-    (zero? n) 
+(define foobar 
+  (lambda (n)
+    (if (zero? n)
       1
-      (* n (factorial (- n 1))))))
+      (* n n n))))
+   
 
-(factorial 8)
 
+(foobar 3)
 

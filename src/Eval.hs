@@ -26,6 +26,7 @@ runASTinEnv env ast = runReaderT (unEval ast) env
 fileToEvalForm :: T.Text -> Eval LispVal
 fileToEvalForm input = either (throw . PError . show  )  evalBody $ readExprFile input
 
+
 evalBody :: LispVal -> Eval LispVal
 evalBody (List [List ((:) (Atom "define") [Atom var, defExpr]), rest]) = do
   evalVal <- eval defExpr
@@ -37,18 +38,11 @@ evalBody (List ((:) (List ((:) (Atom "define") [Atom var, defExpr])) rest)) = do
   ctx <- ask
   local (const $ updateEnv var evalVal ctx) $ evalBody $ List rest
 
-evalBody (List ((:) (Atom x) rest)) = do
-  evalVal <- eval $ Atom x
-  ctx <- ask
-  local (const $ updateEnv x evalVal ctx) $ evalBody $ List rest
-
 evalBody x = eval x
 
 
 updateEnv :: T.Text -> LispVal -> Env -> Env
-updateEnv var e@(Primitive _) Env{..} =  Env $ M.insert var e env
-updateEnv var e@(Closure _ _) Env{..} =  Env $ M.insert var e env
-updateEnv var e Env{..} =  Env (M.insert var e env)
+updateEnv var e Env{..} =  Env $ M.insert var e env
 
 
 
@@ -79,15 +73,25 @@ eval (List [Atom "if", pred, conseq, alt]) = do
         _ -> throw $ TypeMismatch "if expects a boolean, got: " result
 
 eval (List [Atom "define", varExpr, defExpr]) = do
-    Env{..} <- ask
-    evalVal <- eval defExpr
+    Env{} <- ask
+    _evalVal <- eval defExpr
 
     bindArgsEval [varExpr] [defExpr] varExpr
 
 eval (List [Atom "lambda", List params, expr]) = do
-  asks (Closure (Fun $ applyLambda expr params))
+    -- Add itself to the environment so it can be recursive
+    Env env <- ask
+    return $ Closure (Fun $ applyLambda expr params) (Env env)
+
+
 eval (List (Atom "lambda":_) ) = throw $ BadSpecialForm "lambda function expects list of parameters and S-Expression body\n(lambda <params> <s-expr>)"
 
+eval (List [Atom "begin", rest]) = evalBody rest
+eval (List ((:) (Atom "begin") rest )) = evalBody $ List rest
+
+eval (List [Atom "dumpEnv", rest]) = do
+    Env{..} <- ask
+    return $ String $ T.pack $ show env
 
 -- Function application
 eval (List (fn : args)) = do
@@ -105,19 +109,21 @@ eval x = throw $ Default x
 
 
 
-bindArgEval :: LispVal -> LispVal -> LispVal -> Eval LispVal
-bindArgEval (Atom var) val expr = do
-    Env{..} <- ask
-    local (const $ Env $ M.insert var val env) $ eval expr
-
-
 bindArgsEval :: [LispVal] -> [LispVal] -> LispVal -> Eval LispVal
-bindArgsEval [] [] expr = eval expr
-bindArgsEval (Atom var : params) (val : args) expr = do
+bindArgsEval params args expr = do
+    -- Temporarily insert the variable into the environment so it can be recursive
+
     Env{..} <- ask
-    local (const $ Env $ M.insert var val env) $ bindArgsEval params args expr
+    let newVars = Prelude.zip (Prelude.map extractVar params) args
+    let newEnv = Env $ M.union (M.fromList newVars) env
+    local (const newEnv) $ eval expr
+
+
 
 applyLambda :: LispVal -> [LispVal] -> [LispVal] -> Eval LispVal
 applyLambda expr params args = bindArgsEval params args expr
 
 
+extractVar :: LispVal -> T.Text
+extractVar (Atom atom) = atom
+extractVar n = throw $ TypeMismatch "expected an atomic value" n
