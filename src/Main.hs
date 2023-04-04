@@ -20,7 +20,7 @@ main = do
     test <- readFile "test.phl"
     let result = readExprFile $ T.pack test
     case result of
-        Left err -> print err
+        Left err -> putStrLn $ errorBundlePretty err
         Right val ->  do
             -- Show the AST
             print val

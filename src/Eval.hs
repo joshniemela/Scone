@@ -8,6 +8,7 @@ import Data.Text as T
 import Data.Map as M
 import Control.Exception
 import Control.Monad.Reader
+import Text.Megaparsec
 import Prim (primEnv, unop)
 basicEnv :: Env
 basicEnv = Env { env = M.fromList primEnv }
@@ -18,14 +19,13 @@ readFn val = throw $ TypeMismatch "read expects a string, got: " val
 
 
 lineToEvalForm :: T.Text -> Eval LispVal
-lineToEvalForm input = either (throw . PError . show  )  eval $ readExpr input
+lineToEvalForm input = either (throw . PError . T.pack . errorBundlePretty) evalBody $ readExpr input
 
 runASTinEnv :: Env -> Eval b -> IO b
 runASTinEnv env ast = runReaderT (unEval ast) env
 
 fileToEvalForm :: T.Text -> Eval LispVal
-fileToEvalForm input = either (throw . PError . show  )  evalBody $ readExprFile input
-
+fileToEvalForm input = either (throw . PError . T.pack . errorBundlePretty) evalBody $ readExprFile input
 
 evalBody :: LispVal -> Eval LispVal
 evalBody (List [List ((:) (Atom "define") [Atom var, defExpr]), rest]) = do
@@ -42,7 +42,7 @@ evalBody x = eval x
 
 
 updateEnv :: T.Text -> LispVal -> Env -> Env
-updateEnv var e Env{..} =  Env $ M.insert var e env
+updateEnv var e Env{..} =  Env (M.insert var e env)
 
 
 
@@ -100,7 +100,7 @@ eval (List (fn : args)) = do
     vals <- mapM eval args
     case funVar of
         (Primitive (Fun f)) -> f vals
-        (Closure (Fun f) (Env env)) -> local (const $ Env env) $ f vals
+        (Closure (Fun f) (Env benv)) -> local (const $ Env (env <> benv)) $ f vals
         _ -> throw $ NotFunction fn
 
 
@@ -112,9 +112,8 @@ eval x = throw $ Default x
 bindArgsEval :: [LispVal] -> [LispVal] -> LispVal -> Eval LispVal
 bindArgsEval params args expr = do
     -- Temporarily insert the variable into the environment so it can be recursive
-
     Env{..} <- ask
-    let newVars = Prelude.zip (Prelude.map extractVar params) args
+    let newVars = Prelude.zipWith (\p a -> (extractVar p, a)) params args
     let newEnv = Env $ M.union (M.fromList newVars) env
     local (const newEnv) $ eval expr
 

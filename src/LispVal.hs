@@ -15,6 +15,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Exception
 
+
 data LispVal =
     Atom T.Text
     | String T.Text
@@ -64,7 +65,7 @@ data LispException =
     | BadSpecialForm T.Text
     | NotFunction LispVal
     | UnboundVar T.Text
-    | PError String
+    | PError T.Text
     | Default LispVal
 
 instance Exception LispException
@@ -83,7 +84,7 @@ showError err = case err of
     (BadSpecialForm message) -> T.concat ["Bad special form: ", message]
     (NotFunction found) -> T.concat ["Not a function: ", showVal found]
     (UnboundVar message) -> T.concat ["Unbound variable: ", message]
-    (PError message) -> T.pack message
+    (PError message) -> T.concat ["Parse error: ", message]
     (Default found) -> T.concat ["Error: ", showVal found]
 
 
