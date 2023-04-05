@@ -1,0 +1,41 @@
+cabal-version:      3.4
+name:               PlaceholderLisp
+version:            0.1.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Joshua Niemelä
+maintainer:         josh@jniemela.dk
+category:           Language
+build-type:         Simple
+extra-doc-files:
+  README.md
+  TODO.md
+
+
+source-repository head
+  type: git
+  location: https://github.com/joshniemela/PlaceholderLisp
+
+
+
+
+common warnings
+    ghc-options: -Wall
+
+executable PlaceholderLisp
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base
+                     ,text
+                     ,array
+                     ,megaparsec
+                     ,mtl
+                     ,containers
+                     ,directory
+                     ,optparse-applicative
+    hs-source-dirs:   src
+
+    default-extensions: 
+      OverloadedStrings
+
+    default-language: Haskell2010
