@@ -22,11 +22,21 @@ main = do
     case result of
         Left err -> putStrLn $ errorBundlePretty err
         Right val ->  do
-            -- Show the AST
-            print val
+            -- Show the AST on newlines
+            listWithNewlines val
+            
             let env = basicEnv
             let ast = fileToEvalForm $ T.pack test
-            runASTinEnv env ast >>= print
+            runASTinEnv env ast >>= listWithNewlines
+
+listWithNewlines :: LispVal -> IO ()
+-- Print every element of the list on a new line
+listWithNewlines (List (x:xs)) = do
+    print x
+    listWithNewlines $ List xs
+listWithNewlines (List []) = putStrLn "\n\n"
+
+
 
             
 

@@ -6,5 +6,6 @@
 * Add compiler to HTML/LaTeX
 * Add markup type
 * Add syntactic sugar (`define` shorthand, etc.)
+* define only works at the beginning of a file
 * Add functions to produce markup
 

@@ -66,6 +66,7 @@ data LispException =
     | NotFunction LispVal
     | UnboundVar T.Text
     | PError T.Text
+    | AlreadyDefined T.Text
     | Default LispVal
 
 instance Exception LispException
@@ -77,7 +78,11 @@ instance Show LispException where
 showError :: LispException -> T.Text
 showError err = case err of
     (IOError e) -> T.concat ["IO error: ", e]
-    (NumArgs expected found) -> T.concat ["Expected ", T.pack $ show expected, " args; found values ", T.unwords $ showVal <$> found]
+    (NumArgs expected found) -> case expected of
+        1 -> T.concat ["Expected 1 arg; found values ", T.pack $ show found]
+        _ -> T.concat ["Expected ", T.pack $ show expected, " args; found values: ", T.pack $ show found]
+
+    
     (LengthOfList expected found) -> T.concat ["Expected ", expected, " args; found values ", T.pack $ show found]
     (ExpectedList found) -> T.concat ["Expected a list; found ", found]
     (TypeMismatch expected found) -> T.concat ["Invalid type: expected ", expected, ", found ", showVal found]
@@ -85,6 +90,7 @@ showError err = case err of
     (NotFunction found) -> T.concat ["Not a function: ", showVal found]
     (UnboundVar message) -> T.concat ["Unbound variable: ", message]
     (PError message) -> T.concat ["Parse error: ", message]
+    (AlreadyDefined message) -> T.concat ["Multiple definitions for: ", message]
     (Default found) -> T.concat ["Error: ", showVal found]
 
 

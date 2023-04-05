@@ -29,16 +29,18 @@ fileToEvalForm input = either (throw . PError . T.pack . errorBundlePretty) eval
 
 evalBody :: LispVal -> Eval LispVal
 evalBody (List [List ((:) (Atom "define") [Atom var, defExpr]), rest]) = do
-  evalVal <- eval defExpr
-  ctx <- ask
-  local (const $ updateEnv var evalVal ctx) $ eval rest
+    evalVal <- eval defExpr
+    ctx <- ask
+    local (const $ updateEnv var evalVal ctx) $ eval rest
 
 evalBody (List ((:) (List ((:) (Atom "define") [Atom var, defExpr])) rest)) = do
-  evalVal <- eval defExpr
-  ctx <- ask
-  local (const $ updateEnv var evalVal ctx) $ evalBody $ List rest
+    evalVal <- eval defExpr
+    ctx <- ask
+    local (const $ updateEnv var evalVal ctx) $ evalBody $ List rest
 
-evalBody x = eval x
+evalBody (List xs) = do
+  evals <- mapM eval xs
+  return $ List evals
 
 
 updateEnv :: T.Text -> LispVal -> Env -> Env
@@ -52,6 +54,13 @@ getVar var = do
     case M.lookup var env of
         Just val -> return val
         Nothing -> throw $ UnboundVar var
+
+existsVar :: T.Text -> Eval Bool
+existsVar var = do
+    Env{..} <- ask
+    case M.lookup var env of
+        Just _ -> return True
+        Nothing -> return False
 
 eval :: LispVal -> Eval LispVal
 -- Quote
@@ -73,10 +82,15 @@ eval (List [Atom "if", pred, conseq, alt]) = do
         _ -> throw $ TypeMismatch "if expects a boolean, got: " result
 
 eval (List [Atom "define", varExpr, defExpr]) = do
-    Env{} <- ask
-    _evalVal <- eval defExpr
+    -- Check if already defined
+    defined <- existsVar $ showVal varExpr
+    if defined
+        then throw $ AlreadyDefined $ showVal varExpr
+    else do
+        Env{} <- ask
+        _evalVal <- eval defExpr
 
-    bindArgsEval [varExpr] [defExpr] varExpr
+        bindArgsEval [varExpr] [defExpr] varExpr
 
 eval (List [Atom "lambda", List params, expr]) = do
     -- Add itself to the environment so it can be recursive
@@ -120,7 +134,12 @@ bindArgsEval params args expr = do
 
 
 applyLambda :: LispVal -> [LispVal] -> [LispVal] -> Eval LispVal
-applyLambda expr params args = bindArgsEval params args expr
+-- Check if the number of arguments matches the number of parameters
+applyLambda expr params args = do
+    paramLength <- return $ Prelude.length params
+    if paramLength /= Prelude.length args
+        then throw $ NumArgs (fromIntegral paramLength) args
+        else bindArgsEval params args expr
 
 
 extractVar :: LispVal -> T.Text
