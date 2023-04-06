@@ -36,9 +36,6 @@ primEnv =
     , ("quotient", mkF $ binop $ numOp quot)
     , ("remainder", mkF $ binop $ numOp rem)  
 
-    -- Binary predicates
-
-
     -- Unary predicates
     , ("even?", mkF $ unop $ numBool even)
     , ("odd?", mkF $ unop $ numBool odd)

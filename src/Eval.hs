@@ -97,17 +97,6 @@ eval (List (fn : args)) = do
         _ -> throw $ NotFunction fn
 eval x = throw $ Default x
 
-applyLambda :: LispVal -> [LispVal] -> [LispVal] -> Eval LispVal
-applyLambda expr params args = bindArgsEval params args expr
-
-bindArgsEval :: [LispVal] -> [LispVal] -> LispVal -> Eval LispVal
-bindArgsEval params args expr = do
-    e <- get
-    let vars' = Prelude.zipWith (\p a -> (extractVar p, a)) params args
-    let env' = Env $ M.union (M.fromList vars') (env e)
-    put env'
-    eval expr
-
 extractVar :: LispVal -> T.Text
 extractVar (Atom a) = a
 extractVar n = throw $ TypeMismatch "expected an atomic value" n
