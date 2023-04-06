@@ -18,6 +18,7 @@ import Data.Text as T
 
 data LispVal
     = Atom T.Text
+    | Markup T.Text
     | String T.Text
     | Number Integer
     | Bool Bool
@@ -48,6 +49,7 @@ showVal val = case val of
     (List l) -> T.concat ["(", T.unwords $ showVal <$> l, ")"]
     (Primitive _) -> "<primitive>"
     (Closure _ _) -> "<closure>"
+    (Markup m) -> T.concat ["[", m, "]"]
 
 -- Eval is a monad that can throw errors and read from the environment
 newtype Eval a = StateEval {unEval :: StateT Env IO a}

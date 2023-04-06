@@ -95,6 +95,9 @@ eval (List (fn : args)) = do
             put $ Env $ env e <> benv
             f vals
         _ -> throw $ NotFunction fn
+
+eval (Markup m) = return $ Markup m
+
 eval x = throw $ Default x
 
 extractVar :: LispVal -> T.Text

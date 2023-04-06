@@ -47,13 +47,13 @@ parseAtom = do
         "nil" -> Nil
         _ -> Atom $ T.pack atom
 
-parseMany :: Parser [LispVal]
-parseMany = parseSExpr `sepEndBy` space1
+parseMany :: Parser LispVal -> Parser [LispVal]
+parseMany x = x `sepEndBy` space1
 
 parens = between (char '(' <* space) (space <* char ')')
 
 parseList :: Parser LispVal
-parseList = List <$> parens parseMany
+parseList = List <$> parens (parseMany parseSExpr)
 
 parseString :: Parser LispVal
 parseString = do
@@ -62,6 +62,13 @@ parseString = do
     _ <- char '"'
     return $ String $ T.pack str
 
+parseBlock :: Parser LispVal
+parseBlock = do
+    _ <- char '['
+    exprs <- parseMany parseText
+    _ <- char ']'
+    return $ List $ Atom "list" : exprs
+
 parseQuoted :: Parser LispVal
 parseQuoted = do
     _ <- char '\''
@@ -69,7 +76,7 @@ parseQuoted = do
     return $ List $ Atom "quote" : [expr]
 
 parseSExpr :: Parser LispVal
-parseSExpr = choice [parseQuoted, parseList, parseAtom, parseNumber, parseString]
+parseSExpr = choice [parseQuoted, parseBlock, parseList, parseAtom, parseNumber, parseString]
 
 -- contents is a parser that will eat leading whitespaces and the final EOF.
 contents :: Parser a -> Parser a
@@ -79,6 +86,22 @@ contents p = do
     eof
     return r
 
+parseCode :: Parser LispVal
+parseCode = do
+    _ <- char ':'
+    parseSExpr
+
+parseMarkup :: Parser LispVal
+parseMarkup = do
+    -- Take any character except for lookahead ':' or "]"
+    markup <- manyTill anySingle (lookAhead $ choice [char ':', eof >> return ' '])
+    return $ Markup $ T.pack markup
+
+
+parseText :: Parser LispVal
+parseText = choice [parseCode, parseMarkup]
+
+
 readExpr :: T.Text -> Either (ParseErrorBundle T.Text Void) LispVal
 readExpr = parse (contents parseSExpr) "expr"
 
@@ -86,7 +109,7 @@ readExprs :: T.Text -> Either (ParseErrorBundle T.Text Void) LispVal
 readExprs =
     parse
         ( contents
-            ( parseMany >>= \res ->
+            ( parseMany parseSExpr >>= \res ->
                 -- Concat res to a list prepended with Atom "list"
                 return $ List $ Atom "list" : res
             )
