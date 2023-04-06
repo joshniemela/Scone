@@ -25,14 +25,33 @@ mkF = Primitive . Fun
 
 primEnv :: Prim
 primEnv =
+    -- Mathematical operators
     [ ("+", mkF $ binopFold (numOp (+)) (Number 0))
     , ("*", mkF $ binopFold (numOp (*)) (Number 1))
     , ("-", mkF $ binop $ numOp (-))
+    , ("/", mkF $ binop $ numOp div)
+    , ("mod", mkF $ binop $ numOp mod)
+    , ("%", mkF $ binop $ numOp mod)
+    , ("^", mkF $ binop $ numOp (^))
+    , ("quotient", mkF $ binop $ numOp quot)
+    , ("remainder", mkF $ binop $ numOp rem)  
+
+    -- Binary predicates
+
+
+    -- Unary predicates
     , ("even?", mkF $ unop $ numBool even)
     , ("odd?", mkF $ unop $ numBool odd)
     , ("neg?", mkF $ unop $ numBool (< 0))
     , ("pos?", mkF $ unop $ numBool (> 0))
     , ("zero?", mkF $ unop $ numBool (== 0))
+    , ("nil?", mkF $ unop $ \x -> return $ Bool $ case x of Nil -> True; _ -> False)
+    , ("list?", mkF $ unop $ \x -> return $ Bool $ case x of List _ -> True; _ -> False)
+    , ("string?", mkF $ unop $ \x -> return $ Bool $ case x of String _ -> True; _ -> False)
+    , ("atom?", mkF $ unop $ \x -> return $ Bool $ case x of Atom _ -> True; _ -> False)
+    , ("number?", mkF $ unop $ \x -> return $ Bool $ case x of Number _ -> True; _ -> False)
+    , ("bool?", mkF $ unop $ \x -> return $ Bool $ case x of Bool _ -> True; _ -> False)
+
     ]
 
 unop :: Unop -> [LispVal] -> Eval LispVal
@@ -60,3 +79,9 @@ numOp _ (Number x) Nil = return $ Number x
 numOp _ x (Number _) = throw $ TypeMismatch "numeric op " x
 numOp _ (Number _) y = throw $ TypeMismatch "numeric op " y
 numOp _ x _ = throw $ TypeMismatch "numeric op " x
+
+boolOp :: (Bool -> Bool -> Bool) -> LispVal -> LispVal -> Eval LispVal
+boolOp op (Bool x) (Bool y) = return $ Bool $ op x y
+boolOp _ x (Bool _) = throw $ TypeMismatch "boolean op " x
+boolOp _ (Bool _) y = throw $ TypeMismatch "boolean op " y
+boolOp _ x _ = throw $ TypeMismatch "boolean op " x
