@@ -31,6 +31,6 @@ main = do
             -- Prettyprint
             putStrLn $ T.unpack $ showVal val
 
---putStrLn "Eval:"
---let ast = eval val
---runASTinEnv env ast >>= putStrLn . T.unpack . prettyPrint
+            putStrLn "Eval:"
+            let ast = eval val
+            runASTinEnv env ast >>= putStrLn . T.unpack . showVal

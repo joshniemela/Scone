@@ -60,7 +60,8 @@ eval (List [Atom "define", Atom var, defExpr]) = do
     if M.member var (env e)
         then throw $ AlreadyDefined var
         else put $ Env $ M.insert var val (env e)
-    return val
+    -- Return void
+    return Nil
 
 -- Takes a lambda atom, a list of atoms and the body
 eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambda expr params))
