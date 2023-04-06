@@ -1,16 +1,15 @@
-(define factorial (lambda (n)
+(define ! (lambda (n)
   (if (zero? n)
     1
-    (* n (factorial (- n 1))))))
-(define x 4)
+    (* n (! (- n 1))))))
+
+(! 5)
+
 (define prod *)
-"bla bla bla"
-(factorial 4)
-(+ 1)
-()
-(factorial x)
-(factorial x)
-()
-(prod 4 2)
-(prod 4 2)
+
+(list (prod 5 2 19) (+ 1 2 3) (- 2 8))
+
+(define potato true)
+
+dumpEnv
 
