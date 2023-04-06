@@ -1,11 +1,11 @@
 # TODO
-* Fix that only 2 expressions can be evaluated (evalBody / parseMany)
+* type casting
+* stdlib
 * Make it possible to include libs/LaTeX/markdown
 * Add more primitives (fold etc)
 * REPL
 * Add compiler to HTML/LaTeX
 * Add markup type
 * Add syntactic sugar (`define` shorthand, etc.)
-* define only works at the beginning of a file
 * Add functions to produce markup
 
