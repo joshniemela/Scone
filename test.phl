@@ -1,1 +1,13 @@
-begin ()
+(define ! (lambda (n)
+  (if (zero? n)
+    1
+    (* n (! (- n 1))))))
+
+(! 5)
+
+(define prod *)
+(list 2 4)
+(list (define y 2) (prod 5 2 19) (+ y 2) (+ 1 2 3) (- 2 8))
+
+(define potato true)
+potato

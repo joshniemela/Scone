@@ -1,32 +1,36 @@
 {-# LANGUAGE OverloadedStrings #-}
-import Parser (readExpr, readExprFile)
-import LispVal (LispVal(..), Eval(..), Env(..), showVal, LispException(..), Fun(Fun))
+
+import Control.Exception
+import Control.Monad.Except (runExcept)
+import Control.Monad.State
+import Data.Map as M
 import Data.Text as T
+import Data.Void
+import Eval (basicEnv, eval)
+import LispVal (Env (..), Eval (..), Fun (Fun), LispException (..), LispVal (..), showVal)
+import Parser (readExpr, readExprs)
+import Prim (primEnv, unop)
+import System.IO (readFile)
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import Prim (primEnv, unop)
-import Eval (basicEnv, eval, runASTinEnv, fileToEvalForm)
 import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Void
-import Control.Exception
-import Data.Map as M
-import Control.Monad.Reader
-import Control.Monad.Except (runExcept)
-import System.IO (readFile)
 
+runASTinEnv :: Env -> Eval b -> IO b
+runASTinEnv env ast = evalStateT (unEval ast) env
 
 main :: IO ()
 main = do
     test <- readFile "test.phl"
-    let result = readExprFile $ T.pack test
+    let result = readExprs $ T.pack test
     case result of
         Left err -> putStrLn $ errorBundlePretty err
-        Right val ->  do
-            -- Show the AST
-            print val
+        Right val -> do
+            -- Eval
             let env = basicEnv
-            let ast = fileToEvalForm $ T.pack test
-            runASTinEnv env ast >>= print
+            putStrLn "Raw:"
+            -- Prettyprint
+            putStrLn $ T.unpack $ showVal val
 
-            
-
+            putStrLn "Eval:"
+            let ast = eval val
+            runASTinEnv env ast >>= putStrLn . T.unpack . showVal

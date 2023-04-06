@@ -1,61 +1,36 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Eval (basicEnv, eval, runASTinEnv, fileToEvalForm) where
 
-import LispVal (LispVal(..), Eval(unEval), Env(..), showVal, LispException(..), Fun(Fun))
-import Parser
-import Data.Text as T
-import Data.Map as M
+module Eval (basicEnv, eval) where
+
 import Control.Exception
-import Control.Monad.Reader
-import Text.Megaparsec
+import Control.Monad.State
+import Data.Map as M
+import Data.Text as T
+import LispVal (Env (..), Eval (unEval), Fun (Fun), LispException (..), LispVal (..), showVal)
+import Parser
 import Prim (primEnv, unop)
+import Text.Megaparsec
+
 basicEnv :: Env
-basicEnv = Env { env = M.fromList primEnv }
-
-readFn :: LispVal -> Eval LispVal
-readFn (String s) = lineToEvalForm s
-readFn val = throw $ TypeMismatch "read expects a string, got: " val
-
-
-lineToEvalForm :: T.Text -> Eval LispVal
-lineToEvalForm input = either (throw . PError . T.pack . errorBundlePretty) evalBody $ readExpr input
-
-runASTinEnv :: Env -> Eval b -> IO b
-runASTinEnv env ast = runReaderT (unEval ast) env
-
-fileToEvalForm :: T.Text -> Eval LispVal
-fileToEvalForm input = either (throw . PError . T.pack . errorBundlePretty) evalBody $ readExprFile input
-
-evalBody :: LispVal -> Eval LispVal
-evalBody (List [List ((:) (Atom "define") [Atom var, defExpr]), rest]) = do
-  evalVal <- eval defExpr
-  ctx <- ask
-  local (const $ updateEnv var evalVal ctx) $ eval rest
-
-evalBody (List ((:) (List ((:) (Atom "define") [Atom var, defExpr])) rest)) = do
-  evalVal <- eval defExpr
-  ctx <- ask
-  local (const $ updateEnv var evalVal ctx) $ evalBody $ List rest
-
-evalBody x = eval x
-
-
-updateEnv :: T.Text -> LispVal -> Env -> Env
-updateEnv var e Env{..} =  Env (M.insert var e env)
-
-
+basicEnv = Env{env = M.fromList primEnv}
 
 getVar :: T.Text -> Eval LispVal
 getVar var = do
-    Env{..} <- ask
-    case M.lookup var env of
+    e <- get
+    case M.lookup var (env e) of
         Just val -> return val
         Nothing -> throw $ UnboundVar var
 
 eval :: LispVal -> Eval LispVal
 -- Quote
 eval (List [Atom "quote", val]) = return val
+eval (Atom "dumpEnv") = do
+    e <- get
+    let keys = M.keys (env e)
+    let vals = M.elems (env e)
+    return $ List $ Prelude.zipWith (\k v -> List [Atom k, v]) keys vals
+
 -- Autoquote
 eval (Atom a) = getVar a
 eval (String s) = return $ String s
@@ -63,8 +38,7 @@ eval (Number i) = return $ Number i
 eval (Bool b) = return $ Bool b
 eval Nil = return Nil
 eval (List []) = return Nil
-
--- If statement
+-- `if` statement
 eval (List [Atom "if", pred, conseq, alt]) = do
     result <- eval pred
     case result of
@@ -72,57 +46,60 @@ eval (List [Atom "if", pred, conseq, alt]) = do
         Bool True -> eval conseq
         _ -> throw $ TypeMismatch "if expects a boolean, got: " result
 
-eval (List [Atom "define", varExpr, defExpr]) = do
-    Env{} <- ask
-    _evalVal <- eval defExpr
+-- Evaluate one element at a time and sequentially update the environment with the new bindings
+eval (List (Atom "list" : xs)) = do
+    e <- get
+    vals <- mapM eval xs
+    put e
+    return $ List vals
 
-    bindArgsEval [varExpr] [defExpr] varExpr
+-- `define` function, this is supposed to define a variable in the current scope and also give it to itself for recursion. Also check if the variable is already defined.
+eval (List [Atom "define", Atom var, defExpr]) = do
+    e <- get
+    val <- eval defExpr
+    if M.member var (env e)
+        then throw $ AlreadyDefined var
+        else put $ Env $ M.insert var val (env e)
+    -- Return void
+    return Nil
 
-eval (List [Atom "lambda", List params, expr]) = do
-    -- Add itself to the environment so it can be recursive
-    Env env <- ask
-    return $ Closure (Fun $ applyLambda expr params) (Env env)
+-- Takes a lambda atom, a list of atoms and the body
+eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambda expr params))
+  where
+    applyLambda expr params args = do
+        e <- get
+        -- Pair each parameter with the argument
+        let vars = zipWithError (\p a -> (extractVar p, a)) params args
 
-
-eval (List (Atom "lambda":_) ) = throw $ BadSpecialForm "lambda function expects list of parameters and S-Expression body\n(lambda <params> <s-expr>)"
-
-eval (List [Atom "begin", rest]) = evalBody rest
-eval (List ((:) (Atom "begin") rest )) = evalBody $ List rest
-
-eval (List [Atom "dumpEnv", rest]) = do
-    Env{..} <- ask
-    return $ String $ T.pack $ show env
+        -- Add the new bindings to the environment and evaluate the expression
+        put (Env $ M.union (M.fromList vars) (env e))
+        eval expr
+      where
+        -- Check if the number of parameters and arguments match
+        zipWithError f xs ys =
+            if lenX == lenY
+                then Prelude.zipWith f xs ys
+                else throw $ NumArgs (toInteger lenX) ys
+          where
+            lenX = Prelude.length xs
+            lenY = Prelude.length ys
 
 -- Function application
 eval (List (fn : args)) = do
-    Env{..} <- ask
+    e <- get
     funVar <- eval fn
     vals <- mapM eval args
     case funVar of
         (Primitive (Fun f)) -> f vals
-        (Closure (Fun f) (Env benv)) -> local (const $ Env (env <> benv)) $ f vals
+        (Closure (Fun f) (Env benv)) -> do
+            put $ Env $ env e <> benv
+            f vals
         _ -> throw $ NotFunction fn
 
+eval (Markup m) = return $ Markup m
 
 eval x = throw $ Default x
 
-
-
-
-bindArgsEval :: [LispVal] -> [LispVal] -> LispVal -> Eval LispVal
-bindArgsEval params args expr = do
-    -- Temporarily insert the variable into the environment so it can be recursive
-    Env{..} <- ask
-    let newVars = Prelude.zipWith (\p a -> (extractVar p, a)) params args
-    let newEnv = Env $ M.union (M.fromList newVars) env
-    local (const newEnv) $ eval expr
-
-
-
-applyLambda :: LispVal -> [LispVal] -> [LispVal] -> Eval LispVal
-applyLambda expr params args = bindArgsEval params args expr
-
-
 extractVar :: LispVal -> T.Text
-extractVar (Atom atom) = atom
+extractVar (Atom a) = a
 extractVar n = throw $ TypeMismatch "expected an atomic value" n

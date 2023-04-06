@@ -1,13 +1,16 @@
-(/ (+ -2 23 (213 123 ( 213 ( 123 1 ) 4 (* 2 7 1)) 24) 2 ""))
+(define factorial (lambda (n)
+  (if (zero? n)
+    1
+    (* n (factorial (- n 1))))))
+(define x 4)
+(define prod *)
+"bla bla bla"
+(factorial 4)
+(+ 1)
+()
+(factorial x)
+(factorial x)
+()
+(prod 4 2)
+(prod 4 2)
 
-
-( a b )
-
-(a b)
-( a b)
-(a b )
-(
-a
-b
-c
-)

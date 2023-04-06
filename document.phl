@@ -1,0 +1,18 @@
+:(include preamble.tex)
+
+:(title "Something random DMFS idk")
+:(section "Assignment 1"
+  (section "Part b" [
+    Something random idk
+    bla bla bla
+    bla bla bla
+    :(let n 12)
+    :(define sumToN (lambda (n) (sum ((= i 0) n i))))
+    The sum of 1 to :n # n was define to be 12 
+    (:(show (expr n))) is :(eval (expr n))])
+
+
+
+
+
+
