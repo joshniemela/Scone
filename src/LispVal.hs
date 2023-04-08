@@ -45,7 +45,6 @@ showVal val = case val of
     (Number i) -> T.pack $ show i
     (Bool True) -> "true"
     (Bool False) -> "false"
-    Nil -> "nil"
     (List l) -> T.concat ["(", T.unwords $ showVal <$> l, ")"]
     (Primitive _) -> "<primitive>"
     (Closure _ _) -> "<closure>"

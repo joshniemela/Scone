@@ -11,7 +11,7 @@ import LispVal (
     Eval,
     Fun (Fun),
     LispException (ExpectedList, IOError, NumArgs, TypeMismatch),
-    LispVal (Atom, Bool, List, Nil, Number, Primitive, String),
+    LispVal (Atom, Bool, List, Number, Primitive, String),
     showVal,
  )
 import Parser
@@ -42,13 +42,13 @@ primEnv =
     , ("neg?", mkF $ unop $ numBool (< 0))
     , ("pos?", mkF $ unop $ numBool (> 0))
     , ("zero?", mkF $ unop $ numBool (== 0))
-    , ("nil?", mkF $ unop $ \x -> return $ Bool $ case x of Nil -> True; _ -> False)
     , ("list?", mkF $ unop $ \x -> return $ Bool $ case x of List _ -> True; _ -> False)
     , ("string?", mkF $ unop $ \x -> return $ Bool $ case x of String _ -> True; _ -> False)
     , ("atom?", mkF $ unop $ \x -> return $ Bool $ case x of Atom _ -> True; _ -> False)
     , ("number?", mkF $ unop $ \x -> return $ Bool $ case x of Number _ -> True; _ -> False)
     , ("bool?", mkF $ unop $ \x -> return $ Bool $ case x of Bool _ -> True; _ -> False)
-
+    , ("null?", mkF $ unop $ \x -> return $ Bool $ case x of List [] -> True; _ -> False)
+    , ("false?", mkF $ unop $ \x -> return $ Bool $ case x of Bool False -> True; _ -> False)
     ]
 
 unop :: Unop -> [LispVal] -> Eval LispVal
@@ -71,8 +71,6 @@ numBool _ x = throw $ TypeMismatch "numeric op " x
 
 numOp :: (Integer -> Integer -> Integer) -> LispVal -> LispVal -> Eval LispVal
 numOp op (Number x) (Number y) = return $ Number $ op x y
-numOp _ Nil (Number y) = return $ Number y
-numOp _ (Number x) Nil = return $ Number x
 numOp _ x (Number _) = throw $ TypeMismatch "numeric op " x
 numOp _ (Number _) y = throw $ TypeMismatch "numeric op " y
 numOp _ x _ = throw $ TypeMismatch "numeric op " x

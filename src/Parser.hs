@@ -44,7 +44,6 @@ parseAtom = do
     return $ case atom of
         "true" -> Bool True
         "false" -> Bool False
-        "nil" -> Nil
         _ -> Atom $ T.pack atom
 
 parseMany :: Parser LispVal -> Parser [LispVal]

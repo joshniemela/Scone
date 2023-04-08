@@ -23,8 +23,8 @@ getVar var = do
         Nothing -> throw $ UnboundVar var
 
 eval :: LispVal -> Eval LispVal
--- Quote
 eval (List [Atom "quote", val]) = return val
+
 eval (Atom "dumpEnv") = do
     e <- get
     let keys = M.keys (env e)
@@ -36,9 +36,10 @@ eval (Atom a) = getVar a
 eval (String s) = return $ String s
 eval (Number i) = return $ Number i
 eval (Bool b) = return $ Bool b
-eval Nil = return Nil
-eval (List []) = return Nil
+eval (List []) = return $ List []
+
 -- `if` statement
+-- (if pred conseq alt)
 eval (List [Atom "if", pred, conseq, alt]) = do
     result <- eval pred
     case result of
@@ -46,7 +47,23 @@ eval (List [Atom "if", pred, conseq, alt]) = do
         Bool True -> eval conseq
         _ -> throw $ TypeMismatch "if expects a boolean, got: " result
 
+-- `cond` statement, try each predicate until one is true, then evaluate the corresponding expression
+-- (cond (pred1 conseq1) (pred2 conseq2) ...)
+{-eval (List [Atom "cond" : xs]) = do
+    e <- get
+    case xs of
+        [] -> throw $ BadSpecialForm "cond expects at least one predicate"
+        (List [pred, conseq] : rest) -> do
+            result <- eval pred
+            case result of
+                Bool False -> eval $ List [Atom "cond" : rest]
+                Bool True -> eval conseq
+                _ -> throw $ TypeMismatch "cond expects a boolean, got: " result
+        _ -> throw $ BadSpecialForm "cond expects a list of predicates"
+-}
+
 -- Evaluate one element at a time and sequentially update the environment with the new bindings
+-- (list (+ 1 2) (+ 3 4)) -> (3 7)
 eval (List (Atom "list" : xs)) = do
     e <- get
     vals <- mapM eval xs
@@ -54,16 +71,28 @@ eval (List (Atom "list" : xs)) = do
     return $ List vals
 
 -- `define` function, this is supposed to define a variable in the current scope and also give it to itself for recursion. Also check if the variable is already defined.
+-- (define x 5)
 eval (List [Atom "define", Atom var, defExpr]) = do
     e <- get
     val <- eval defExpr
     if M.member var (env e)
         then throw $ AlreadyDefined var
         else put $ Env $ M.insert var val (env e)
-    -- Return void
-    return Nil
+    return $ List []
+
+-- Shorthand define
+-- (define (f x y) (+ x y))
+eval (List [Atom "define", List (Atom var : params), defExpr]) = do
+    e <- get
+    let fun = List [Atom "lambda", List params, defExpr]
+    val <- eval fun
+    if M.member var (env e)
+        then throw $ AlreadyDefined var
+        else put $ Env $ M.insert var val (env e)
+    return $ List []
 
 -- Takes a lambda atom, a list of atoms and the body
+-- (lambda (x y) (+ x y))
 eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambda expr params))
   where
     applyLambda expr params args = do
@@ -85,6 +114,7 @@ eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambd
             lenY = Prelude.length ys
 
 -- Function application
+-- (f x... )
 eval (List (fn : args)) = do
     e <- get
     funVar <- eval fn
