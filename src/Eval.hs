@@ -25,18 +25,13 @@ getVar var = do
 eval :: LispVal -> Eval LispVal
 eval (List [Atom "quote", val]) = return val
 
-eval (Atom "dumpEnv") = do
-    e <- get
-    let keys = M.keys (env e)
-    let vals = M.elems (env e)
-    return $ List $ Prelude.zipWith (\k v -> List [Atom k, v]) keys vals
-
 -- Autoquote
 eval (Atom a) = getVar a
 eval (String s) = return $ String s
 eval (Number i) = return $ Number i
 eval (Bool b) = return $ Bool b
 eval (List []) = return $ List []
+eval (Markup m) = return $ Markup m
 
 -- `if` statement
 -- (if pred conseq alt)
@@ -126,7 +121,6 @@ eval (List (fn : args)) = do
             f vals
         _ -> throw $ NotFunction fn
 
-eval (Markup m) = return $ Markup m
 
 eval x = throw $ Default x
 
