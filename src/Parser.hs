@@ -44,7 +44,6 @@ parseAtom = do
     return $ case atom of
         "true" -> Bool True
         "false" -> Bool False
-        "nil" -> Nil
         _ -> Atom $ T.pack atom
 
 parseMany :: Parser LispVal -> Parser [LispVal]
@@ -65,9 +64,9 @@ parseString = do
 parseBlock :: Parser LispVal
 parseBlock = do
     _ <- char '['
-    exprs <- parseMany parseText
+    exprs <- many (parseText <* space)
     _ <- char ']'
-    return $ List $ Atom "list" : exprs
+    return $ List $ Atom "markup" : exprs
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
@@ -93,9 +92,12 @@ parseCode = do
 
 parseMarkup :: Parser LispVal
 parseMarkup = do
-    -- Take any character except for lookahead ':' or "]"
-    markup <- manyTill anySingle (lookAhead $ choice [char ':', eof >> return ' '])
-    return $ Markup $ T.pack markup
+    -- Take any character that is not ] or :
+    markup <- notFollowedBy (char ']' <|> char ':') *> manyTill anySingle (lookAhead $ char ']' <|> char ':')
+
+    --remove trailing whitespaces
+    let markup' = reverse $ dropWhile (== ' ') $ reverse markup
+    return $ String $ T.pack markup'
 
 
 parseText :: Parser LispVal

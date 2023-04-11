@@ -22,7 +22,6 @@ data LispVal
     | String T.Text
     | Number Integer
     | Bool Bool
-    | Nil
     | List [LispVal]
     | Primitive Fun
     | Closure Fun Env
@@ -45,7 +44,6 @@ showVal val = case val of
     (Number i) -> T.pack $ show i
     (Bool True) -> "true"
     (Bool False) -> "false"
-    Nil -> "nil"
     (List l) -> T.concat ["(", T.unwords $ showVal <$> l, ")"]
     (Primitive _) -> "<primitive>"
     (Closure _ _) -> "<closure>"
