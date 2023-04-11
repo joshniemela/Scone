@@ -22,7 +22,6 @@ data LispVal
     | String T.Text
     | Number Integer
     | Bool Bool
-    | Nil
     | List [LispVal]
     | Primitive Fun
     | Closure Fun Env

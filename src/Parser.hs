@@ -97,7 +97,7 @@ parseMarkup = do
 
     --remove trailing whitespaces
     let markup' = reverse $ dropWhile (== ' ') $ reverse markup
-    return $ Markup $ T.pack markup'
+    return $ String $ T.pack markup'
 
 
 parseText :: Parser LispVal

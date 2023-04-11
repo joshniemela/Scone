@@ -22,15 +22,35 @@ getVar var = do
         Just val -> return val
         Nothing -> throw $ UnboundVar var
 
+dropNil :: [LispVal] -> [LispVal]
+dropNil [] = []
+dropNil (List []:xs) = dropNil xs
+dropNil (x:xs) = x : dropNil xs
+
+
+
 eval :: LispVal -> Eval LispVal
 eval (List [Atom "quote", val]) = return val
+
+-- (x y z (markup a b c) foo bar) -> (x y z a b c foo bar)
+-- Evaluates all the expressions in the list and then concatenates the results and puts the environment back to the original one, note how this is the same as list but `get` is called after evaluating the expressions.
+eval (List (Atom "markup": xs)) = do
+    vals <- mapM eval xs
+    e' <- get
+    put $ Env $ env e'
+    
+    -- Put spaces between the values and drop the nils
+    return $ Markup $ T.intercalate " " $ showVal <$> dropNil vals
+
+
+
+
 
 -- Autoquote
 eval (Atom a) = getVar a
 eval (String s) = return $ String s
 eval (Number i) = return $ Number i
 eval (Bool b) = return $ Bool b
-eval (List []) = return $ List []
 eval (Markup m) = return $ Markup m
 
 -- `if` statement
