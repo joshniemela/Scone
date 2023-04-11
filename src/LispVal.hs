@@ -42,8 +42,8 @@ showVal val = case val of
     (Atom a) -> a
     (String s) -> T.concat ["\"", s, "\""]
     (Number i) -> T.pack $ show i
-    (Bool True) -> "true"
-    (Bool False) -> "false"
+    (Bool True) -> "#t"
+    (Bool False) -> "#f"
     (List l) -> T.concat ["(", T.unwords $ showVal <$> l, ")"]
     (Primitive _) -> "<primitive>"
     (Closure _ _) -> "<closure>"

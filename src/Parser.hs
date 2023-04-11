@@ -42,8 +42,8 @@ parseAtom = do
     rest <- many $ firstAllowed <|> digitChar
     let atom = first : rest
     return $ case atom of
-        "true" -> Bool True
-        "false" -> Bool False
+        "#t" -> Bool True
+        "#f" -> Bool False
         _ -> Atom $ T.pack atom
 
 parseMany :: Parser LispVal -> Parser [LispVal]
