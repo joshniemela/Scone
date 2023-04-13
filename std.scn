@@ -6,7 +6,7 @@
 
 ; unary predicates
 (define (null? lst)
-  (if (eq? lst '()) #t #f))
+  (eq? lst '()))
 
 (define (zero? val)
-  (if (eq? val 0) #t #f))
+  (eq? val 0))
