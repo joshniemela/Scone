@@ -144,8 +144,12 @@ eval (List (fn : args)) = do
     case funVar of
         (Primitive (Fun f)) -> f vals
         (Closure (Fun f) (Env benv)) -> do
-            put $ Env $ env e <> benv
+            --put $ Env $ env e <> benv
             f vals
+        (Macro (Fun f) (Env benv)) -> do
+            --put $ Env $ env e <> benv
+            f args
+
         _ -> throw $ NotFunction fn
 
 
