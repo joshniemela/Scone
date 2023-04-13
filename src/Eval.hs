@@ -170,25 +170,19 @@ eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambd
             lenX = Prelude.length xs
             lenY = Prelude.length ys
 
-eval (List (Atom "define-syntax" : List (Atom var : params) : body)) = do
-    e <- get
-    let fun = List [Atom "lambda", List params, List body]
-    val <- eval fun
-    if M.member var (env e)
-        then throw $ AlreadyDefined var
-        else put $ Env $ M.insert var val (env e)
-    return $ List []
 
 -- Function application
 -- (f x... )
 eval (List (fn : args)) = do
     e <- get
     funVar <- eval fn
-    vals <- mapM eval args
     case funVar of
-        (Primitive (Fun f)) -> f vals
+        (Primitive (Fun f)) -> do
+            vals <- mapM eval args
+            f vals
         (Closure (Fun f) (Env benv)) -> do
             --put $ Env $ env e <> benv
+            vals <- mapM eval args
             f vals
         (Macro (Fun f) (Env benv)) -> do
             --put $ Env $ env e <> benv
