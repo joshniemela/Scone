@@ -1,0 +1,12 @@
+; define a function to map across elements
+(define (map fn lst)
+  (if (null? lst)
+    '()
+    (cons (fn (car lst)) (map fn (cdr lst)))))
+
+; unary predicates
+(define (null? lst)
+  (if (eq? lst '()) #t #f))
+
+(define (zero? val)
+  (if (eq? val 0) #t #f))

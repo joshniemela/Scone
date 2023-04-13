@@ -15,6 +15,21 @@ import Text.Megaparsec
 basicEnv :: Env
 basicEnv = Env{env = M.fromList primEnv}
 
+
+-- `include`takes a file and evaluates it and returns the result
+-- (include "std.phl")
+include :: T.Text -> Eval LispVal
+include file = do
+    e <- get
+    let env' = env e
+    put $ Env env'
+    let result = readExprs file
+    case result of
+        Left err -> throw $ PError $ T.pack $ errorBundlePretty err
+        Right val -> eval val
+
+
+
 getVar :: T.Text -> Eval LispVal
 getVar var = do
     e <- get
@@ -40,7 +55,7 @@ eval (List [Atom "quasiquote", form]) =
 eval (List [Atom "unquote", form]) = throw $ BadSpecialForm "unquote outside of quasiquote"
 
 -- (x y z (markup a b c) foo bar) -> (x y z a b c foo bar)
--- Evaluates all the expressions in the list and then concatenates the results and puts the environment back to the original one, note how this is the same as list but `get` is called after evaluating the expressions.
+-- Evaluates all the expressions in the list and then concatenates the results and puts the environment back to the original one, note how this is the same as `list` but `get` is called after evaluating the expressions.
 eval (List (Atom "markup": xs)) = do
     vals <- mapM eval xs
     e' <- get
@@ -49,7 +64,27 @@ eval (List (Atom "markup": xs)) = do
     -- Put spaces between the values and drop the nils
     return $ Markup $ T.intercalate " " $ showVal <$> dropNil vals
 
+-- Eval list and merge environments with main
+eval (List (Atom "include" : name)) = do
+    case name of
+        [String file] -> do
+            content <- liftIO $ readFile $ T.unpack file
+            let result = readExprs $ T.pack content
+            case result of
+                Left err -> throw $ PError $ T.pack $ errorBundlePretty err
+                Right val -> do
+                    -- Extract everything out of the outer list
+                    let List (Atom "list" : xs) = val
+                    -- Eval each expression in the list
+                    vals <- mapM eval xs
+                    -- Get the environment
+                    e <- get
+                    put $ Env $ env e
+                    return $ String file
 
+                    
+        _ -> throw $ BadSpecialForm "include expects a string"
+    
 
 
 

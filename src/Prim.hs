@@ -44,12 +44,8 @@ prod xs = return $ Number (product $ (\(Number x) -> x) <$> xs)
 sub :: [LispVal] -> Eval LispVal
 sub [Number x, Number y] = return $ Number (x - y)
 
-zero :: [LispVal] -> Eval LispVal
-zero [Number x] = return $ Bool (x == 0)
-
-nullLisp :: [LispVal] -> Eval LispVal
-nullLisp [List []] = return $ Bool True
-nullLisp _ = return $ Bool False
+equivalent :: [LispVal] -> Eval LispVal
+equivalent [x, y] = return $ Bool (x == y)
 
 primEnv :: Prim
 primEnv =
@@ -60,6 +56,5 @@ primEnv =
       ("cdr", mkF cdr),
       ("cons", mkF consLisp),
       ("cadr", mkF cadr),
-      ("zero?", mkF zero),
-      ("null?", mkF nullLisp)
+      ("eq?", mkF equivalent)
     ]

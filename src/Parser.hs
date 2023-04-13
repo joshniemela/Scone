@@ -22,6 +22,10 @@ escapeChars = do
     _ <- char '\\'
     oneOf reservedChars
 
+parseComment :: Parser ()
+parseComment = L.skipLineComment ";"
+
+
 parseNumber :: Parser LispVal
 parseNumber = do
     sign <- optional $ char '-'
@@ -89,14 +93,15 @@ parseUnQuote = do
 
 parseSExpr :: Parser LispVal
 parseSExpr = choice [
-    parseQuoted
+  parseComment *> space *> parseSExpr
+  , parseQuoted
   , parseQuasiQuoted
   , parseUnQuote
   , parseBlock
   , parseList
+  , parseString
   , parseAtom
   , parseNumber
-  , parseString
   ]
 
 -- contents is a parser that will eat leading whitespaces and the final EOF.

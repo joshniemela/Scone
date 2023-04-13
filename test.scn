@@ -1,12 +1,11 @@
+(include "std.scn")
+
+; this is a comment
 (define (! n)
   (if (zero? n)
     1
     (* n (! (- n 1)))))
 
-(define (map fn lst)
-  (if (null? lst)
-    '()
-    (cons (fn (car lst)) (map fn (cdr lst)))))
 
 [ Mapping the factorial function across 2 4 and 5]
 (map ! '(2 4 5))

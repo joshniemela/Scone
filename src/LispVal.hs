@@ -27,12 +27,16 @@ data LispVal
     | Closure Fun Env
     | Macro Fun Env
 
+instance Eq LispVal where
+    (==) (Atom a) (Atom b) = a == b
+    (==) (String a) (String b) = a == b
+    (==) (Number a) (Number b) = a == b
+    (==) (Bool a) (Bool b) = a == b
+    (==) (List a) (List b) = a == b
+    (==) _ _ = throw $ BadSpecialForm "Cannot compare values"
+
 newtype Fun = Fun {fn :: [LispVal] -> Eval LispVal}
 newtype Env = Env {env :: M.Map T.Text LispVal}
-
--- We say that all functions are inequal since it is an undecidable problem.
-instance Eq Fun where
-    (==) _ _ = False
 
 instance Show LispVal where
     -- Show value and their showval
