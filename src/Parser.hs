@@ -15,12 +15,16 @@ import qualified Text.Megaparsec.Char.Lexer as L
 type Parser = Parsec Void T.Text
 
 reservedChars :: [Char]
-reservedChars = "()[]\"\';:#"
+reservedChars = "()[]\"\';:"
 
 escapeChars :: Parser Char
 escapeChars = do
     _ <- char '\\'
     oneOf reservedChars
+
+parseComment :: Parser ()
+parseComment = L.skipLineComment ";" *> space
+
 
 parseNumber :: Parser LispVal
 parseNumber = do
@@ -34,7 +38,7 @@ parseNumber = do
 firstAllowed :: Parser Char
 firstAllowed = letterChar <|> oneOf others
   where
-    others = "!$%&|*+-/:<=>?@^_~" :: [Char]
+    others = "#!$%&|*+-/:<=>?@^_~" :: [Char]
 
 parseAtom :: Parser LispVal
 parseAtom = do
@@ -42,8 +46,8 @@ parseAtom = do
     rest <- many $ firstAllowed <|> digitChar
     let atom = first : rest
     return $ case atom of
-        "true" -> Bool True
-        "false" -> Bool False
+        "#t" -> Bool True
+        "#f" -> Bool False
         _ -> Atom $ T.pack atom
 
 parseMany :: Parser LispVal -> Parser [LispVal]
@@ -72,10 +76,33 @@ parseQuoted :: Parser LispVal
 parseQuoted = do
     _ <- char '\''
     expr <- parseSExpr
-    return $ List $ Atom "quote" : [expr]
+    return $ List [Atom "quote", expr]
+
+parseQuasiQuoted :: Parser LispVal
+parseQuasiQuoted = do
+    _ <- char '`'
+    expr <- parseSExpr
+    return $ List [Atom "quasiquote", expr]
+
+parseUnQuote :: Parser LispVal
+parseUnQuote = do
+    _ <- char ','
+    expr <- parseSExpr
+    return $ List [Atom "unquote", expr]
+
 
 parseSExpr :: Parser LispVal
-parseSExpr = choice [parseQuoted, parseBlock, parseList, parseAtom, parseNumber, parseString]
+parseSExpr = choice [
+  parseComment *> parseSExpr
+  , parseQuoted
+  , parseQuasiQuoted
+  , parseUnQuote
+  , parseBlock
+  , parseList
+  , parseString
+  , parseAtom
+  , parseNumber
+  ]
 
 -- contents is a parser that will eat leading whitespaces and the final EOF.
 contents :: Parser a -> Parser a

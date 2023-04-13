@@ -9,7 +9,7 @@ import Data.Void
 import Eval (basicEnv, eval)
 import LispVal (Env (..), Eval (..), Fun (Fun), LispException (..), LispVal (..), showVal)
 import Parser (readExpr, readExprs)
-import Prim (primEnv, unop)
+import Prim (primEnv)
 import System.IO (readFile)
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -20,14 +20,14 @@ runASTinEnv env ast = evalStateT (unEval ast) env
 
 main :: IO ()
 main = do
-    test <- readFile "test.phl"
+    test <- readFile "test.scn"
     let result = readExprs $ T.pack test
     case result of
         Left err -> putStrLn $ errorBundlePretty err
         Right val -> do
             -- Eval
             let env = basicEnv
-            putStrLn "Raw:"
+            putStrLn "Intermediate:"
             -- Prettyprint
             putStrLn $ T.unpack $ showVal val
 

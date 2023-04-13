@@ -9,11 +9,26 @@ import Data.Map as M
 import Data.Text as T
 import LispVal (Env (..), Eval (unEval), Fun (Fun), LispException (..), LispVal (..), showVal)
 import Parser
-import Prim (primEnv, unop)
+import Prim (primEnv)
 import Text.Megaparsec
 
 basicEnv :: Env
 basicEnv = Env{env = M.fromList primEnv}
+
+
+-- `include`takes a file and evaluates it and returns the result
+-- (include "std.phl")
+include :: T.Text -> Eval LispVal
+include file = do
+    e <- get
+    let env' = env e
+    put $ Env env'
+    let result = readExprs file
+    case result of
+        Left err -> throw $ PError $ T.pack $ errorBundlePretty err
+        Right val -> eval val
+
+
 
 getVar :: T.Text -> Eval LispVal
 getVar var = do
@@ -28,12 +43,19 @@ dropNil (List []:xs) = dropNil xs
 dropNil (x:xs) = x : dropNil xs
 
 
-
+-- Evaluate various types of quotes
 eval :: LispVal -> Eval LispVal
 eval (List [Atom "quote", val]) = return val
+eval (List [Atom "quasiquote", form]) =
+    evalUnquotes form
+    where
+        evalUnquotes (List [Atom "unquote", form]) = eval form
+        evalUnquotes (List (x:xs)) = List <$> mapM evalUnquotes (x:xs)
+        evalUnquotes x = return x 
+eval (List [Atom "unquote", form]) = throw $ BadSpecialForm "unquote outside of quasiquote"
 
 -- (x y z (markup a b c) foo bar) -> (x y z a b c foo bar)
--- Evaluates all the expressions in the list and then concatenates the results and puts the environment back to the original one, note how this is the same as list but `get` is called after evaluating the expressions.
+-- Evaluates all the expressions in the list and then concatenates the results and puts the environment back to the original one, note how this is the same as `list` but `get` is called after evaluating the expressions.
 eval (List (Atom "markup": xs)) = do
     vals <- mapM eval xs
     e' <- get
@@ -42,7 +64,27 @@ eval (List (Atom "markup": xs)) = do
     -- Put spaces between the values and drop the nils
     return $ Markup $ T.intercalate " " $ showVal <$> dropNil vals
 
+-- Eval list and merge environments with main
+eval (List (Atom "include" : name)) = do
+    case name of
+        [String file] -> do
+            content <- liftIO $ readFile $ T.unpack file
+            let result = readExprs $ T.pack content
+            case result of
+                Left err -> throw $ PError $ T.pack $ errorBundlePretty err
+                Right val -> do
+                    -- Extract everything out of the outer list
+                    let List (Atom "list" : xs) = val
+                    -- Eval each expression in the list
+                    vals <- mapM eval xs
+                    -- Get the environment
+                    e <- get
+                    put $ Env $ env e
+                    return $ String file
 
+                    
+        _ -> throw $ BadSpecialForm "include expects a string"
+    
 
 
 
@@ -128,6 +170,15 @@ eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambd
             lenX = Prelude.length xs
             lenY = Prelude.length ys
 
+eval (List (Atom "define-syntax" : List (Atom var : params) : body)) = do
+    e <- get
+    let fun = List [Atom "lambda", List params, List body]
+    val <- eval fun
+    if M.member var (env e)
+        then throw $ AlreadyDefined var
+        else put $ Env $ M.insert var val (env e)
+    return $ List []
+
 -- Function application
 -- (f x... )
 eval (List (fn : args)) = do
@@ -137,8 +188,12 @@ eval (List (fn : args)) = do
     case funVar of
         (Primitive (Fun f)) -> f vals
         (Closure (Fun f) (Env benv)) -> do
-            put $ Env $ env e <> benv
+            --put $ Env $ env e <> benv
             f vals
+        (Macro (Fun f) (Env benv)) -> do
+            --put $ Env $ env e <> benv
+            f args
+
         _ -> throw $ NotFunction fn
 
 

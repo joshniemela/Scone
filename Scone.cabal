@@ -1,5 +1,5 @@
 cabal-version:      3.4
-name:               PlaceholderLisp
+name:               Scone
 version:            0.1.0.0
 license:            MIT
 license-file:       LICENSE
@@ -22,7 +22,7 @@ source-repository head
 common warnings
     ghc-options: -Wall
 
-executable PlaceholderLisp
+executable Scone
     import:           warnings
     main-is:          Main.hs
     build-depends:    base
