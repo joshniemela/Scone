@@ -3,21 +3,10 @@
     1
     (* n (! (- n 1)))))
 
-(! 5)
+(define (map fn lst)
+  (if (null? lst)
+    '()
+    (cons (fn (car lst)) (map fn (cdr lst)))))
 
-[
-Assume for n=1 that the following :(define x 2) :x is true so that bla bla
-]
-x
-
-(define prod *)
-(list 2 4)
-(list (define y 2)  y (prod 5 2 19) (+ y 2) (+ 1 2 3) (- 2 8))
-
-(define potato #t)
-
-[Testing the various quotes]
-
-'(normal quote)
-
-`(1 2 ,(list 2 3))
+[ Mapping the factorial function across 2 4 and 5]
+(map ! '(2 4 5))

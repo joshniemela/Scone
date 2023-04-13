@@ -9,7 +9,7 @@ import Data.Void
 import Eval (basicEnv, eval)
 import LispVal (Env (..), Eval (..), Fun (Fun), LispException (..), LispVal (..), showVal)
 import Parser (readExpr, readExprs)
-import Prim (primEnv, unop)
+import Prim (primEnv)
 import System.IO (readFile)
 import Text.Megaparsec
 import Text.Megaparsec.Char

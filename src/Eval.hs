@@ -9,7 +9,7 @@ import Data.Map as M
 import Data.Text as T
 import LispVal (Env (..), Eval (unEval), Fun (Fun), LispException (..), LispVal (..), showVal)
 import Parser
-import Prim (primEnv, unop)
+import Prim (primEnv)
 import Text.Megaparsec
 
 basicEnv :: Env
@@ -134,6 +134,15 @@ eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambd
           where
             lenX = Prelude.length xs
             lenY = Prelude.length ys
+
+eval (List (Atom "define-syntax" : List (Atom var : params) : body)) = do
+    e <- get
+    let fun = List [Atom "lambda", List params, List body]
+    val <- eval fun
+    if M.member var (env e)
+        then throw $ AlreadyDefined var
+        else put $ Env $ M.insert var val (env e)
+    return $ List []
 
 -- Function application
 -- (f x... )
