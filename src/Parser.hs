@@ -23,7 +23,7 @@ escapeChars = do
     oneOf reservedChars
 
 parseComment :: Parser ()
-parseComment = L.skipLineComment ";"
+parseComment = L.skipLineComment ";" *> space
 
 
 parseNumber :: Parser LispVal
@@ -93,7 +93,7 @@ parseUnQuote = do
 
 parseSExpr :: Parser LispVal
 parseSExpr = choice [
-  parseComment *> space *> parseSExpr
+  parseComment *> parseSExpr
   , parseQuoted
   , parseQuasiQuoted
   , parseUnQuote
