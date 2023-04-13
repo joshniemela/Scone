@@ -14,5 +14,10 @@ x
 (list 2 4)
 (list (define y 2)  y (prod 5 2 19) (+ y 2) (+ 1 2 3) (- 2 8))
 
-(define potato true)
-potato
+(define potato #t)
+
+[Testing the various quotes]
+
+'(normal quote)
+
+`(1 2 ,(list 2 3))

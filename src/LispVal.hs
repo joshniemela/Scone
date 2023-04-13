@@ -25,6 +25,7 @@ data LispVal
     | List [LispVal]
     | Primitive Fun
     | Closure Fun Env
+    | Macro Fun Env
 
 newtype Fun = Fun {fn :: [LispVal] -> Eval LispVal}
 newtype Env = Env {env :: M.Map T.Text LispVal}

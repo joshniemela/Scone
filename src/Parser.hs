@@ -15,7 +15,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 type Parser = Parsec Void T.Text
 
 reservedChars :: [Char]
-reservedChars = "()[]\"\';:#"
+reservedChars = "()[]\"\';:"
 
 escapeChars :: Parser Char
 escapeChars = do
@@ -34,7 +34,7 @@ parseNumber = do
 firstAllowed :: Parser Char
 firstAllowed = letterChar <|> oneOf others
   where
-    others = "!$%&|*+-/:<=>?@^_~" :: [Char]
+    others = "#!$%&|*+-/:<=>?@^_~" :: [Char]
 
 parseAtom :: Parser LispVal
 parseAtom = do
@@ -72,10 +72,32 @@ parseQuoted :: Parser LispVal
 parseQuoted = do
     _ <- char '\''
     expr <- parseSExpr
-    return $ List $ Atom "quote" : [expr]
+    return $ List [Atom "quote", expr]
+
+parseQuasiQuoted :: Parser LispVal
+parseQuasiQuoted = do
+    _ <- char '`'
+    expr <- parseSExpr
+    return $ List [Atom "quasiquote", expr]
+
+parseUnQuote :: Parser LispVal
+parseUnQuote = do
+    _ <- char ','
+    expr <- parseSExpr
+    return $ List [Atom "unquote", expr]
+
 
 parseSExpr :: Parser LispVal
-parseSExpr = choice [parseQuoted, parseBlock, parseList, parseAtom, parseNumber, parseString]
+parseSExpr = choice [
+    parseQuoted
+  , parseQuasiQuoted
+  , parseUnQuote
+  , parseBlock
+  , parseList
+  , parseAtom
+  , parseNumber
+  , parseString
+  ]
 
 -- contents is a parser that will eat leading whitespaces and the final EOF.
 contents :: Parser a -> Parser a

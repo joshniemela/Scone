@@ -28,9 +28,16 @@ dropNil (List []:xs) = dropNil xs
 dropNil (x:xs) = x : dropNil xs
 
 
-
+-- Evaluate various types of quotes
 eval :: LispVal -> Eval LispVal
 eval (List [Atom "quote", val]) = return val
+eval (List [Atom "quasiquote", form]) =
+    evalUnquotes form
+    where
+        evalUnquotes (List [Atom "unquote", form]) = eval form
+        evalUnquotes (List (x:xs)) = List <$> mapM evalUnquotes (x:xs)
+        evalUnquotes x = return x 
+eval (List [Atom "unquote", form]) = throw $ BadSpecialForm "unquote outside of quasiquote"
 
 -- (x y z (markup a b c) foo bar) -> (x y z a b c foo bar)
 -- Evaluates all the expressions in the list and then concatenates the results and puts the environment back to the original one, note how this is the same as list but `get` is called after evaluating the expressions.
