@@ -52,14 +52,6 @@ apply [Primitive (Fun f), List xs] = f xs
 
 
 primEnv :: Prim
-primEnv =
-    [ ("+", mkF add),
-      ("*", mkF prod),
-      ("-", mkF sub),
-      ("car", mkF car),
-      ("cdr", mkF cdr),
-      ("cons", mkF consLisp),
-      ("cadr", mkF cadr),
-      ("eq?", mkF equivalent),
-      ("apply", mkF apply)
-    ]
+primEnv = Prelude.zip
+    ["+", "*", "-", "car", "cdr", "cons", "cadr", "eq?", "apply"]
+    $ Prelude.map mkF [add, prod, sub, car, cdr, consLisp, cadr, equivalent, apply]
