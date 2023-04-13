@@ -47,6 +47,10 @@ sub [Number x, Number y] = return $ Number (x - y)
 equivalent :: [LispVal] -> Eval LispVal
 equivalent [x, y] = return $ Bool (x == y)
 
+apply :: [LispVal] -> Eval LispVal
+apply [Primitive (Fun f), List xs] = f xs
+
+
 primEnv :: Prim
 primEnv =
     [ ("+", mkF add),
@@ -56,5 +60,6 @@ primEnv =
       ("cdr", mkF cdr),
       ("cons", mkF consLisp),
       ("cadr", mkF cadr),
-      ("eq?", mkF equivalent)
+      ("eq?", mkF equivalent),
+      ("apply", mkF apply)
     ]
