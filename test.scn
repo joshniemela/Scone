@@ -9,3 +9,6 @@
 
 [ Mapping the factorial function across 2 4 and 5]
 (map ! '(2 4 5))
+
+
+(let (x 2) (+ 2 x))

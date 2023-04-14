@@ -12,15 +12,15 @@
   (eq? val 0))
 
 ; macro stuff
-;(define-syntax (bind-vars bindings)
-;  `(map car bindings))
+(defmacro (bind-vars bindings)
+  `(map car bindings))
 
 ;(define (cadr pair) (car (cdr pair)))
 
-;(define-syntax (bind-vals bindings)
-;  `(map cadr bindings))
+(defmacro (bind-vals bindings)
+  `(map cadr bindings))
 
-;(define-syntax (let bindings body)
-;  `(apply (lambda ,(bind-vars bindings) ,body) ',(bind-vals bindings)))
+(defmacro (let bindings body)
+  `(apply (lambda ,(bind-vars bindings) ,body) ',(bind-vals bindings)))
 '()
 

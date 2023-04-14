@@ -127,6 +127,8 @@ eval (List (Atom "list" : xs)) = do
     put e
     return $ List vals
 
+
+
 -- `define` function, this is supposed to define a variable in the current scope and also give it to itself for recursion. Also check if the variable is already defined.
 -- (define x 5)
 eval (List [Atom "define", Atom var, defExpr]) = do
@@ -148,6 +150,44 @@ eval (List [Atom "define", List (Atom var : params), defExpr]) = do
         else put $ Env $ M.insert var val (env e)
     return $ List []
 
+-- takes a list of atoms and the body and returns a macro
+-- (defmacro (reverse '(a b c)) (list 'c 'b 'a))
+
+-- This should finally return a Macro
+eval (List (Atom "defmacro" : List (Atom var : params) : body)) = do
+    e <- get
+    let macro = List [Atom "macro", List params, List body]
+    val <- eval macro
+    if M.member var (env e)
+        then throw $ AlreadyDefined var
+        else put $ Env $ M.insert var val (env e)
+    return $ List []
+
+eval (List [Atom "macro", List params, body]) = gets (Macro (Fun $ applyMacro body params))
+    where
+        applyMacro :: LispVal -> [LispVal] -> [LispVal] -> Eval LispVal
+        applyMacro body params args = do
+            e <- get
+            -- Pair each parameter with the argument
+            let vars = zipWithError (\p a -> (extractVar p, a)) params args
+
+            -- Add the new bindings to the environment and evaluate the expression
+            put (Env $ M.union (M.fromList vars) (env e))
+            eval body
+          where
+            -- Check if the number of parameters and arguments match
+            zipWithError f xs ys =
+                if lenX == lenY
+                    then Prelude.zipWith f xs ys
+                    else throw $ NumArgs (toInteger lenX) ys
+              where
+                lenX = Prelude.length xs
+                lenY = Prelude.length ys
+
+    
+            
+    
+    
 -- Takes a lambda atom, a list of atoms and the body
 -- (lambda (x y) (+ x y))
 eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambda expr params))
@@ -170,7 +210,6 @@ eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambd
             lenX = Prelude.length xs
             lenY = Prelude.length ys
 
-
 -- Function application
 -- (f x... )
 eval (List (fn : args)) = do
@@ -185,14 +224,14 @@ eval (List (fn : args)) = do
             vals <- mapM eval args
             f vals
         (Macro (Fun f) (Env benv)) -> do
-            --put $ Env $ env e <> benv
-            f args
+            -- Apply the macro to the arguments and then evaluate the result
+            val' <- f args
+            eval val'
+
 
         _ -> throw $ NotFunction fn
 
-
-eval x = throw $ Default x
-
+-- Does the same as showVal but asserts that it is an atomic value
 extractVar :: LispVal -> T.Text
 extractVar (Atom a) = a
 extractVar n = throw $ TypeMismatch "expected an atomic value" n
