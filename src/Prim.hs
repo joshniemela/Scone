@@ -25,6 +25,8 @@ mkF = Primitive . Fun
 
 car :: [LispVal] -> Eval LispVal
 car [List (x : _)] = return x
+car [List []] = throw $ IOError "Empty list"
+car [x] = throw $ TypeMismatch "List" x
 
 cdr :: [LispVal] -> Eval LispVal
 cdr [List (_ : xs)] = return $ List xs
@@ -35,6 +37,7 @@ consLisp [x, List xs] = return $ List (x : xs)
 cadr :: [LispVal] -> Eval LispVal
 cadr [List (_ : x : _)] = return x
 
+
 add :: [LispVal] -> Eval LispVal
 add xs = return $ Number (sum $ (\(Number x) -> x) <$> xs)
 
@@ -44,18 +47,24 @@ prod xs = return $ Number (product $ (\(Number x) -> x) <$> xs)
 sub :: [LispVal] -> Eval LispVal
 sub [Number x, Number y] = return $ Number (x - y)
 
+divLisp :: [LispVal] -> Eval LispVal
+divLisp [Number _, Number 0] = throw $ IOError "Division by zero"
+divLisp [Number x, Number y] = return $ Number (quot x y)
+
+
+
 equivalent :: [LispVal] -> Eval LispVal
 equivalent [x, y] = return $ Bool (x == y)
 
 apply :: [LispVal] -> Eval LispVal
 apply [Primitive (Fun f), List xs] = f xs
 
-
 primEnv :: Prim
 primEnv = Prelude.map (\(x, y) -> (x, mkF y))
     [ ("+", add),
       ("*", prod),
       ("-", sub),
+      ("/", divLisp),
       ("car", car),
       ("cdr", cdr),
       ("cons", consLisp),

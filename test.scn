@@ -10,5 +10,18 @@
 [ Mapping the factorial function across 2 4 and 5]
 (map ! '(2 4 5))
 
+(define crashIf (fexpr (pred crasher)
+  (if pred
+    crasher
+    #t)))
 
-(let (x 2) (+ 2 x))
+
+(crashIf #f (/ 1 0))
+
+
+(define (caar lst)
+  (car (car pairs)))
+
+
+(eval (+ 12))
+

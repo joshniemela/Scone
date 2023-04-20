@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Eval (basicEnv, eval) where
+module Eval (basicEnv, evalEnv, eval) where
 
 import Control.Exception
 import Control.Monad.State
@@ -14,6 +14,17 @@ import Text.Megaparsec
 
 basicEnv :: Env
 basicEnv = Env{env = M.fromList primEnv}
+
+-- Add eval function to the environment
+-- (eval (quote (1 2 3)))
+-- (1 2 3)
+
+evalEnv :: Env
+evalEnv = Env{env = M.insert "eval" (Primitive $ Fun eval') (env basicEnv)}
+
+eval' :: [LispVal] -> Eval LispVal
+eval' [x] = eval x
+eval' invalid = throw $ NumArgs 1 invalid
 
 
 -- `include`takes a file and evaluates it and returns the result
@@ -150,44 +161,23 @@ eval (List [Atom "define", List (Atom var : params), defExpr]) = do
         else put $ Env $ M.insert var val (env e)
     return $ List []
 
--- takes a list of atoms and the body and returns a macro
--- (defmacro (reverse '(a b c)) (list 'c 'b 'a))
 
--- This should finally return a Macro
-eval (List (Atom "defmacro" : List (Atom var : params) : body)) = do
-    e <- get
-    let macro = List [Atom "macro", List params, List body]
-    val <- eval macro
-    if M.member var (env e)
-        then throw $ AlreadyDefined var
-        else put $ Env $ M.insert var val (env e)
-    return $ List []
-
-eval (List [Atom "macro", List params, body]) = gets (Macro (Fun $ applyMacro body params))
-    where
-        applyMacro :: LispVal -> [LispVal] -> [LispVal] -> Eval LispVal
-        applyMacro body params args = do
-            e <- get
-            -- Pair each parameter with the argument
-            let vars = zipWithError (\p a -> (extractVar p, a)) params args
-
-            -- Add the new bindings to the environment and evaluate the expression
-            put (Env $ M.union (M.fromList vars) (env e))
-            eval body
+eval (List [Atom "fexpr", List params, body]) = gets (Macro (Fun $ applyFexpr body params))
+  where
+    applyFexpr body params args = do
+        e <- get
+        let vars = zipWithError (\p a -> (extractVar p, a)) params args
+        put (Env $ M.union (M.fromList vars) (env e))
+        eval body
+      where
+        zipWithError f xs ys =
+            if lenX == lenY
+                then Prelude.zipWith f xs ys
+                else throw $ NumArgs (toInteger lenX) ys
           where
-            -- Check if the number of parameters and arguments match
-            zipWithError f xs ys =
-                if lenX == lenY
-                    then Prelude.zipWith f xs ys
-                    else throw $ NumArgs (toInteger lenX) ys
-              where
-                lenX = Prelude.length xs
-                lenY = Prelude.length ys
+            lenX = Prelude.length xs
+            lenY = Prelude.length ys
 
-    
-            
-    
-    
 -- Takes a lambda atom, a list of atoms and the body
 -- (lambda (x y) (+ x y))
 eval (List [Atom "lambda", List params, expr]) = gets (Closure (Fun $ applyLambda expr params))
@@ -224,12 +214,11 @@ eval (List (fn : args)) = do
             vals <- mapM eval args
             f vals
         (Macro (Fun f) (Env benv)) -> do
-            -- Apply the macro to the arguments and then evaluate the result
-            val' <- f args
-            eval val'
+            f args
 
 
         _ -> throw $ NotFunction fn
+
 
 -- Does the same as showVal but asserts that it is an atomic value
 extractVar :: LispVal -> T.Text
