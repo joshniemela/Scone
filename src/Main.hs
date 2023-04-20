@@ -6,7 +6,7 @@ import Control.Monad.State
 import Data.Map as M
 import Data.Text as T
 import Data.Void
-import Eval (basicEnv, eval)
+import Eval (basicEnv, evalEnv, eval)
 import LispVal (Env (..), Eval (..), Fun (Fun), LispException (..), LispVal (..), showVal)
 import Parser (readExpr, readExprs)
 import Prim (primEnv)
@@ -26,7 +26,7 @@ main = do
         Left err -> putStrLn $ errorBundlePretty err
         Right val -> do
             -- Eval
-            let env = basicEnv
+            let env = evalEnv
             putStrLn "Intermediate:"
             -- Prettyprint
             putStrLn $ T.unpack $ showVal val

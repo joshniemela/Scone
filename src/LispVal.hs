@@ -33,7 +33,7 @@ instance Eq LispVal where
     (==) (Number a) (Number b) = a == b
     (==) (Bool a) (Bool b) = a == b
     (==) (List a) (List b) = a == b
-    (==) _ _ = throw $ BadSpecialForm "Cannot compare values"
+    (==) _ _ = False
 
 newtype Fun = Fun {fn :: [LispVal] -> Eval LispVal}
 newtype Env = Env {env :: M.Map T.Text LispVal}
