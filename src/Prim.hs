@@ -72,3 +72,4 @@ primEnv = Prelude.map (\(x, y) -> (x, mkF y))
       ("eq?", equivalent),
       ("apply", apply)
     ]
+
